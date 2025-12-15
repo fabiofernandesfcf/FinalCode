@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8" />
+<title>System Breach – Daloop</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Courier New', monospace;
+  background: black;
+  color: #00ff9c;
+  overflow: hidden;
+}
+
+/* MATRIX BACKGROUND */
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+/* MAIN PANEL */
+.panel {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px;
+  text-align: center;
+}
+
+h1 {
+  margin: 0;
+  letter-spacing: 3px;
+}
+
+.timer {
+  font-size: 48px;
+  margin: 10px 0;
+  color: #ff5555;
+}
+
+.status {
+  font-size: 18px;
+  margin-top: 5px;
+}
+
+.hacked {
+  font-size: 22px;
+  margin-top: 15px;
+  color: #ffcc00;
+}
+
+/* INPUTS */
+.code-inputs {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.code-inputs input {
+  width: 45px;
+  height: 55px;
+  font-size: 32px;
+  text-align: center;
+  background: black;
+  border: 2px solid #00ff9c;
+  color: #00ff9c;
+}
+
+/* BUTTON */
+button {
+  margin-top: 20px;
+  padding: 12px 40px;
+  font-size: 20px;
+  background: black;
+  border: 2px solid #ff5555;
+  color: #ff5555;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #ff5555;
+  color: black;
+}
+
+.message {
+  margin-top: 20px;
+  font-size: 20px;
+}
+
+/* FOOTER */
+.footer {
+  font-size: 14px;
+  opacity: 0.8;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="matrix"></canvas>
+
+<div class="panel">
+  <div>
+    <h1>SYSTEM BREACH DETECTED</h1>
+    <div class="timer" id="timer">90:00</div>
+    <div class="status">Charging Infrastructure Compromised</div>
+    <div class="hacked" id="hacked">Charging Stations hacked: 0%</div>
+  </div>
+
+  <div>
+    <div class="code-inputs">
+      <input maxlength="1" />
+      <input maxlength="1" />
+      <input maxlength="1" />
+      <input maxlength="1" />
+      <input maxlength="1" />
+      <input maxlength="1" />
+      <input maxlength="1" />
+      <input maxlength="1" />
+    </div>
+
+    <button id="defuse">DEFUSE</button>
+
+    <div class="message" id="message"></div>
+  </div>
+
+  <div class="footer">
+    DALOOP CORE SYSTEM — UNAUTHORIZED ACCESS
+  </div>
+</div>
+
+<script>
+/* ================= MATRIX EFFECT ================= */
+const canvas = document.getElementById("matrix");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const letters = "01ABCDEFGHIJKLMNOPQRSTUVWXYZ#$%&@";
+const fontSize = 14;
+const columns = canvas.width / fontSize;
+const drops = Array.from({ length: columns }, () => 1);
+
+function drawMatrix() {
+  ctx.fillStyle = "rgba(0,0,0,0.05)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#00ff9c";
+  ctx.font = fontSize + "px monospace";
+
+  drops.forEach((y, i) => {
+    const text = letters[Math.floor(Math.random() * letters.length)];
+    ctx.fillText(text, i * fontSize, y * fontSize);
+    if (y * fontSize > canvas.height && Math.random() > 0.975) {
+      drops[i] = 0;
+    }
+    drops[i]++;
+  });
+}
+
+setInterval(drawMatrix, 33);
+
+/* ================= LOGIC ================= */
+const CORRECT_CODE = "14282944";
+let timeLeft = 90 * 60; // seconds
+let hackedPercent = 0;
+let exploded = false;
+
+const timerEl = document.getElementById("timer");
+const hackedEl = document.getElementById("hacked");
+const messageEl = document.getElementById("message");
+const inputs = document.querySelectorAll("input");
+
+inputs.forEach((input, idx) => {
+  input.addEventListener("input", () => {
+    if (input.value && idx < inputs.length - 1) {
+      inputs[idx + 1].focus();
+    }
+  });
+});
+
+function updateTimer() {
+  const min = Math.floor(Math.abs(timeLeft) / 60);
+  const sec = Math.abs(timeLeft) % 60;
+  timerEl.textContent = `${min}:${sec.toString().padStart(2, "0")}`;
+
+  if (timeLeft <= 0) {
+    exploded = true;
+    hackedPercent = Math.min(100, hackedPercent + 0.05);
+    hackedEl.textContent = `Charging Stations hacked: ${hackedPercent.toFixed(1)}%`;
+  }
+
+  timeLeft--;
+}
+
+setInterval(updateTimer, 1000);
+
+document.getElementById("defuse").addEventListener("click", () => {
+  const code = Array.from(inputs).map(i => i.value).join("");
+
+  if (code === CORRECT_CODE) {
+    if (!exploded && hackedPercent < 100) {
+      messageEl.style.color = "#00ff9c";
+      messageEl.textContent =
+        "ACCESS GRANTED — Infrastructure secured. Attack neutralized.";
+    } else {
+      messageEl.style.color = "#ffcc00";
+      messageEl.textContent =
+        "SYSTEM UNLOCKED — But too late. Infrastructure already compromised.";
+    }
+  } else {
+    hackedPercent = Math.min(100, hackedPercent + 1);
+    hackedEl.textContent = `Charging Stations hacked: ${hackedPercent}%`;
+    messageEl.style.color = "#ff5555";
+    messageEl.textContent = "INVALID CODE — Intrusion level increased.";
+  }
+});
+</script>
+
+</body>
+</html>
