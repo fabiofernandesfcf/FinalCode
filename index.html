@@ -17,7 +17,6 @@ html, body {
   transition: background 1s ease;
 }
 
-/* MATRIX */
 canvas {
   position: fixed;
   top: 0;
@@ -161,9 +160,7 @@ button:hover {
     <div class="message" id="message"></div>
   </div>
 
-  <div class="footer">
-    DALOOP CORE SYSTEM — UNAUTHORIZED ACCESS
-  </div>
+  <div>DALOOP CORE SYSTEM — UNAUTHORIZED ACCESS</div>
 </div>
 
 <!-- GROUP HINT -->
@@ -176,39 +173,36 @@ button:hover {
 </div>
 
 <script>
-/* MATRIX */
+/* MATRIX EFFECT */
 const canvas = document.getElementById("matrix");
 const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-const letters = "01ABCDEFGHIJKLMNOPQRSTUVWXYZ#$%&@";
+const chars = "01ABCDEFGHIJKLMNOPQRSTUVWXYZ#$%&@";
 const fontSize = 14;
-const columns = canvas.width / fontSize;
-const drops = Array.from({ length: columns }, () => 1);
+const columns = Math.floor(canvas.width / fontSize);
+const drops = Array(columns).fill(1);
 
-let matrixInterval;
-
-function drawMatrix() {
+let matrixInterval = setInterval(() => {
   ctx.fillStyle = "rgba(0,0,0,0.05)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#00ff9c";
   ctx.font = fontSize + "px monospace";
 
   drops.forEach((y, i) => {
-    const text = letters[Math.floor(Math.random() * letters.length)];
+    const text = chars[Math.floor(Math.random() * chars.length)];
     ctx.fillText(text, i * fontSize, y * fontSize);
     if (y * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
     drops[i]++;
   });
-}
+}, 33);
 
-matrixInterval = setInterval(drawMatrix, 33);
-
-/* LOGIC */
+/* GAME LOGIC */
 const CORRECT_CODE = "14282944";
 let timeLeft = 90 * 60;
 let hackedPercent = 0;
+let overtimeSeconds = 0;
 let finished = false;
 
 const timerEl = document.getElementById("timer");
@@ -216,9 +210,11 @@ const hackedEl = document.getElementById("hacked");
 const messageEl = document.getElementById("message");
 const inputs = document.querySelectorAll("input");
 
-inputs.forEach((input, idx) => {
+inputs.forEach((input, i) => {
   input.addEventListener("input", () => {
-    if (input.value && idx < inputs.length - 1) inputs[idx + 1].focus();
+    if (input.value && i < inputs.length - 1) {
+      inputs[i + 1].focus();
+    }
   });
 });
 
@@ -227,18 +223,24 @@ const startTime = Date.now();
 const timerInterval = setInterval(() => {
   if (finished) return;
 
-  const min = Math.floor(Math.abs(timeLeft) / 60);
-  const sec = Math.abs(timeLeft) % 60;
+  const abs = Math.abs(timeLeft);
+  const min = Math.floor(abs / 60);
+  const sec = abs % 60;
   timerEl.textContent = `${min}:${sec.toString().padStart(2, "0")}`;
 
   if (timeLeft <= 0) {
-    hackedPercent = Math.min(100, hackedPercent + 0.05);
-    hackedEl.textContent = `Charging Stations hacked: ${hackedPercent.toFixed(1)}%`;
+    overtimeSeconds++;
+
+    if (overtimeSeconds % 600 === 0) {
+      hackedPercent = Math.min(100, hackedPercent + 1);
+      hackedEl.textContent = `Charging Stations hacked: ${hackedPercent}%`;
+    }
   }
 
   timeLeft--;
 }, 1000);
 
+/* DEFUSE */
 document.getElementById("defuse").addEventListener("click", () => {
   if (finished) return;
 
@@ -248,7 +250,6 @@ document.getElementById("defuse").addEventListener("click", () => {
     finished = true;
     clearInterval(timerInterval);
     clearInterval(matrixInterval);
-
     document.body.classList.add("safe");
 
     const elapsed = Math.floor((Date.now() - startTime) / 1000);
