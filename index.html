@@ -14,9 +14,10 @@ html, body {
   background: black;
   color: #00ff9c;
   overflow: hidden;
+  transition: background 1s ease;
 }
 
-/* MATRIX BACKGROUND */
+/* MATRIX */
 canvas {
   position: fixed;
   top: 0;
@@ -24,7 +25,7 @@ canvas {
   z-index: 0;
 }
 
-/* MAIN PANEL */
+/* MAIN */
 .panel {
   position: relative;
   z-index: 2;
@@ -46,11 +47,6 @@ h1 {
   font-size: 48px;
   margin: 10px 0;
   color: #ff5555;
-}
-
-.status {
-  font-size: 18px;
-  margin-top: 5px;
 }
 
 .hacked {
@@ -95,12 +91,45 @@ button:hover {
 .message {
   margin-top: 20px;
   font-size: 20px;
+  max-width: 600px;
 }
 
-/* FOOTER */
-.footer {
+/* GROUP INDICATOR */
+.groups {
+  position: fixed;
+  bottom: 15px;
+  left: 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.5;
+  z-index: 3;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.mult {
   font-size: 14px;
-  opacity: 0.8;
+  opacity: 0.7;
+}
+
+.red { background: #ff4444; }
+.blue { background: #4488ff; }
+.green { background: #44ff88; }
+.purple { background: #aa66ff; }
+.brown { background: #8b5a2b; }
+
+/* SAFE MODE */
+.safe {
+  background: #0b1d14;
+}
+
+.safe canvas {
+  display: none;
 }
 </style>
 </head>
@@ -113,7 +142,6 @@ button:hover {
   <div>
     <h1>SYSTEM BREACH DETECTED</h1>
     <div class="timer" id="timer">90:00</div>
-    <div class="status">Charging Infrastructure Compromised</div>
     <div class="hacked" id="hacked">Charging Stations hacked: 0%</div>
   </div>
 
@@ -130,7 +158,6 @@ button:hover {
     </div>
 
     <button id="defuse">DEFUSE</button>
-
     <div class="message" id="message"></div>
   </div>
 
@@ -139,11 +166,19 @@ button:hover {
   </div>
 </div>
 
+<!-- GROUP HINT -->
+<div class="groups">
+  <div class="dot red"></div><span class="mult">×</span>
+  <div class="dot blue"></div><span class="mult">×</span>
+  <div class="dot green"></div><span class="mult">×</span>
+  <div class="dot purple"></div><span class="mult">×</span>
+  <div class="dot brown"></div>
+</div>
+
 <script>
-/* ================= MATRIX EFFECT ================= */
+/* MATRIX */
 const canvas = document.getElementById("matrix");
 const ctx = canvas.getContext("2d");
-
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
@@ -152,30 +187,29 @@ const fontSize = 14;
 const columns = canvas.width / fontSize;
 const drops = Array.from({ length: columns }, () => 1);
 
+let matrixInterval;
+
 function drawMatrix() {
   ctx.fillStyle = "rgba(0,0,0,0.05)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-
   ctx.fillStyle = "#00ff9c";
   ctx.font = fontSize + "px monospace";
 
   drops.forEach((y, i) => {
     const text = letters[Math.floor(Math.random() * letters.length)];
     ctx.fillText(text, i * fontSize, y * fontSize);
-    if (y * fontSize > canvas.height && Math.random() > 0.975) {
-      drops[i] = 0;
-    }
+    if (y * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
     drops[i]++;
   });
 }
 
-setInterval(drawMatrix, 33);
+matrixInterval = setInterval(drawMatrix, 33);
 
-/* ================= LOGIC ================= */
+/* LOGIC */
 const CORRECT_CODE = "14282944";
-let timeLeft = 90 * 60; // seconds
+let timeLeft = 90 * 60;
 let hackedPercent = 0;
-let exploded = false;
+let finished = false;
 
 const timerEl = document.getElementById("timer");
 const hackedEl = document.getElementById("hacked");
@@ -184,40 +218,51 @@ const inputs = document.querySelectorAll("input");
 
 inputs.forEach((input, idx) => {
   input.addEventListener("input", () => {
-    if (input.value && idx < inputs.length - 1) {
-      inputs[idx + 1].focus();
-    }
+    if (input.value && idx < inputs.length - 1) inputs[idx + 1].focus();
   });
 });
 
-function updateTimer() {
+const startTime = Date.now();
+
+const timerInterval = setInterval(() => {
+  if (finished) return;
+
   const min = Math.floor(Math.abs(timeLeft) / 60);
   const sec = Math.abs(timeLeft) % 60;
   timerEl.textContent = `${min}:${sec.toString().padStart(2, "0")}`;
 
   if (timeLeft <= 0) {
-    exploded = true;
     hackedPercent = Math.min(100, hackedPercent + 0.05);
     hackedEl.textContent = `Charging Stations hacked: ${hackedPercent.toFixed(1)}%`;
   }
 
   timeLeft--;
-}
-
-setInterval(updateTimer, 1000);
+}, 1000);
 
 document.getElementById("defuse").addEventListener("click", () => {
+  if (finished) return;
+
   const code = Array.from(inputs).map(i => i.value).join("");
 
   if (code === CORRECT_CODE) {
-    if (!exploded && hackedPercent < 100) {
+    finished = true;
+    clearInterval(timerInterval);
+    clearInterval(matrixInterval);
+
+    document.body.classList.add("safe");
+
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const min = Math.floor(elapsed / 60);
+    const sec = elapsed % 60;
+
+    if (timeLeft > 0 && hackedPercent < 100) {
       messageEl.style.color = "#00ff9c";
       messageEl.textContent =
-        "ACCESS GRANTED — Infrastructure secured. Attack neutralized.";
+        `ACCESS GRANTED — Infrastructure secured in ${min}m ${sec}s. All systems stable.`;
     } else {
       messageEl.style.color = "#ffcc00";
       messageEl.textContent =
-        "SYSTEM UNLOCKED — But too late. Infrastructure already compromised.";
+        `SYSTEM UNLOCKED in ${min}m ${sec}s — but too late. Infrastructure already compromised.`;
     }
   } else {
     hackedPercent = Math.min(100, hackedPercent + 1);
